@@ -1,9 +1,23 @@
 .canvas_layer {
+   position: absolute; /*fixing canvas*/
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
     z-index: 0;
 }
 
 .ui_layer {
+   position: absolute; 
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
     z-index: 1;
+    pointer-events: none; /*turns the ui layer invisible*/
+}
+.flexbox, .toggle, .item {
+    pointer-events: auto; /*to turn them back on*/
 }
 
 .flexbox {
@@ -33,7 +47,6 @@ box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.3);
  display: flex;              
  justify-content: center;   /*to make the content inside the div also centered*/
  align-items: center;        
- 
 }
 
 .flexbox img {
