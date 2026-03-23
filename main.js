@@ -19,3 +19,20 @@ tb.addEventListener('click', () => {
     tb.alt = 'Dark Mode';
   }
 });
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const elements = [];
+
+const current_state = {
+  current_tool: "none",
+  is_drawing: false,
+  current_color: "#000000",
+  stroke_width: 2
+
+};
+
+const history = [];
+
+const dpr= window.devicePixelRatio()
