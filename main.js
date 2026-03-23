@@ -56,6 +56,23 @@ function get_coordinates(event) {
 
 /*add drawing rectangle, diamond, circle etc logic here*/
 
+function rectangle(e){
+  ctx.strokeRect(e.x, e.y, e.width, e.height);
+}
+
+function line(e){
+ctx.beginPath(); 
+ctx.moveTo(e.x, e.y); 
+ctx.lineTo(e.xf, e.yf); 
+ctx.stroke(); 
+}
+
+function circle(e){
+  ctx.beginPath();
+  ctx.arc(e.center_x, e.centre_y, e.radius, 0, 2 * Math.PI); 
+  ctx.stroke();
+
+}
 
 
 
@@ -68,9 +85,15 @@ function render_canvas() {
     ctx.lineWidth = e.stroke_width || current_state.stroke_width;
 
     switch (e.type) {
-      case 'rectangle': 
-        ctx.strokeRect(e.x, e.y, e.width, e.height);
-        break;
+      case 'rectangle': rectangle(e);
+      break;
+
+      case 'line': line(e);
+      break;
+
+      case 'circle': circle(e);
+      break;
+
 
       //function to be completed
     }
@@ -101,6 +124,37 @@ canvas.addEventListener('pointerdown', (event) => {
     elements.push(current_element);
   }
 
+  else if (current_state.current_tool === 'line'){
+
+    current_element = {
+      type: 'line' ,
+      x: coords.x,
+      y: coords.y,
+      xf: coords.x,
+      yf: coords.y,
+      color: current_state.current_color,
+      stroke_width: current_state.stroke_width
+      
+    };
+    elements.push(current_element);
+  }
+
+  else if (current_state.current_tool === 'circle'){
+    
+    current_element = {
+      
+    type: 'circle',
+    center_x : coords.x,
+    centre_y : coords.y,
+    radius : 0,
+    color: current_state.current_color,
+    stroke_width: current_state.stroke_width
+    
+    };
+    elements.push(current_element);
+    
+  }
+
 
 }
 )
@@ -117,6 +171,19 @@ canvas.addEventListener('pointermove', (event) => {
     current_element.width = current_coords.x - current_element.x;
     current_element.height = current_coords.y - current_element.y;
   }
+
+  else if (current_state.current_tool === 'line'){
+    current_element.xf = current_coords.x,
+    current_element.yf = current_coords.y
+
+  }
+
+  else if (current_state.current_tool === 'circle'){
+    const change_x = current_coords.x - current_element.center_x;
+    const change_y = current_coords.y - current_element.centre_y;
+    current_element.radius = Math.hypot(change_x, change_y );
+  }
+
   render_canvas();
 
 })
@@ -128,7 +195,7 @@ canvas.addEventListener('pointerup', (event) => {
   current_element = null;
 })
 
-
+ 
 const toolbar = document.querySelectorAll('.item');
 
 toolbar.forEach(tool => {
@@ -139,11 +206,7 @@ toolbar.forEach(tool => {
     });
 });
 
-
-
 resize_canvas();
-
-
 window.addEventListener('resize', () => {
   resize_canvas();
   render_canvas(); 
