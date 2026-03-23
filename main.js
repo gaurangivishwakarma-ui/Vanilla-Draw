@@ -10,8 +10,20 @@ const tb = document.getElementById('togglebtn');
 
 tb.addEventListener('click', () => {
   document.body.classList.toggle('dark-mode');  /*dark mode on*/
-
-  if (document.body.classList.contains('dark-mode')) {
+  //update color for new shapes
+  const dark_mode_on = document.body.classList.contains('dark-mode');
+  current_state.current_color =  '#FFFFFF' ;
+  //update existing shapes
+  elements.forEach(e => {
+    if ( dark_mode_on){
+      e.color = '#FFFFFF'
+    }
+    else{
+      e.color = '#000000'
+    }
+    render_canvas();
+  })
+  if (dark_mode_on) {
     tb.src = 'images/sun.png';
     tb.alt = 'Light Mode';
   } else {
@@ -54,8 +66,6 @@ function get_coordinates(event) {
   return { x, y }; //returns an object containing coordinates
 }
 
-/*add drawing rectangle, diamond, circle etc logic here*/
-
 function rectangle(e){
   ctx.strokeRect(e.x, e.y, e.width, e.height);
 }
@@ -74,6 +84,30 @@ function circle(e){
 
 }
 
+function square(e){
+ctx.strokeRect(e.x, e.y, e.width, e.height);
+
+}
+
+function triangle(e) {
+  ctx.beginPath();
+  ctx.moveTo(e.x + (e.width / 2), e.y);
+  ctx.lineTo(e.x + e.width, e.y + e.height);
+  ctx.lineTo(e.x, e.y + e.height);
+  ctx.closePath(); 
+  ctx.stroke();
+}
+
+function pen(e) {
+  ctx.beginPath();
+  ctx.moveTo(e.points[0].x, e.points[0].y);
+  for (let i = 1; i < e.points.length; i++) {
+    ctx.lineTo(e.points[i].x, e.points[i].y);
+  }
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+}
 
 
 /*looks at the elements array and renders canvas*/
@@ -92,6 +126,15 @@ function render_canvas() {
       break;
 
       case 'circle': circle(e);
+      break;
+
+      case 'square': square(e);
+      break;
+
+      case 'triangle': triangle(e);
+      break;
+
+      case 'pen': pen(e);
       break;
 
 
@@ -155,6 +198,46 @@ canvas.addEventListener('pointerdown', (event) => {
     
   }
 
+  else if (current_state.current_tool === 'square'){
+    current_element = {
+      type: 'square',
+      x : coords.x,
+      y : coords.y,
+      width :0,
+      height: 0,
+      color: current_state.current_color,
+      stroke_width: current_state.stroke_width 
+    };
+    elements.push(current_element);
+  }
+
+  else if (current_state.current_tool === 'triangle'){
+
+    current_element = {
+      type: 'triangle',
+      x : coords.x,
+      y : coords.y,
+      width :0,
+      height: 0,
+      color: current_state.current_color,
+      stroke_width: current_state.stroke_width 
+
+    };
+    elements.push(current_element);
+  }
+
+  else if (current_state.current_tool === 'pen'){
+
+    current_element = {
+    type: 'pen',
+    points: [ { x: coords.x, y: coords.y } ],
+    color: current_state.current_color,
+    stroke_width: current_state.stroke_width 
+    
+    };
+     elements.push(current_element);
+  }
+
 
 }
 )
@@ -182,6 +265,25 @@ canvas.addEventListener('pointermove', (event) => {
     const change_x = current_coords.x - current_element.center_x;
     const change_y = current_coords.y - current_element.centre_y;
     current_element.radius = Math.hypot(change_x, change_y );
+  }
+
+  else if (current_state.current_tool === 'square'){
+    const change_x = current_coords.x - current_element.x;
+    const change_y = current_coords.y - current_element.y;
+    const side = Math.max(Math.abs(change_x), Math.abs(change_y));
+    
+    current_element.width = side * Math.sign(change_x);
+    current_element.height = side* Math.sign(change_y);
+
+  }
+
+  else if (current_state.current_tool === 'triangle') {
+    current_element.width = current_coords.x - current_element.x;
+    current_element.height = current_coords.y - current_element.y;
+  }
+
+  else if (current_state.current_tool === 'pen') {
+    current_element.points.push({ x: current_coords.x, y: current_coords.y });
   }
 
   render_canvas();
