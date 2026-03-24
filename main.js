@@ -121,6 +121,22 @@ function save_canvas() {
   localStorage.setItem('canvas', JSON.stringify(elements));
 }
 
+const image = {};
+
+function draw_image(e) {
+  let img = image[e.url];
+  if (!img) {
+    img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = render_canvas;
+    img.src = e.url;
+    image[e.url] = img;
+  }
+  if (img.complete) {
+    ctx.drawImage(img, e.x, e.y, e.width, e.height);
+  } 
+}
+
 /*looks at the elements array and renders canvas*/
 function render_canvas() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -154,6 +170,9 @@ function render_canvas() {
         break;
 
       case 'pen': pen(e);
+        break;
+
+      case 'image' : draw_image(e);
         break;
 
 
@@ -269,6 +288,17 @@ canvas.addEventListener('pointerdown', (event) => {
     elements.push(current_element);
   }
 
+  else if (current_state.current_tool === 'image') {
+  current_element = {
+    type: 'image',
+    x: coords.x,
+    y: coords.y,
+    width: 300,
+    height: 300,
+    url: `https://picsum.photos/seed/${Math.random()}/400/400`
+  };
+  elements.push(current_element);
+}
 
 }
 )
@@ -287,8 +317,8 @@ canvas.addEventListener('pointermove', (event) => {
   }
 
   else if (current_state.current_tool === 'line') {
-    current_element.xf = current_coords.x,
-      current_element.yf = current_coords.y
+    current_element.xf = current_coords.x;
+    current_element.yf = current_coords.y;
 
   }
 
@@ -315,6 +345,11 @@ canvas.addEventListener('pointermove', (event) => {
 
   else if (current_state.current_tool === 'pen') {
     current_element.points.push({ x: current_coords.x, y: current_coords.y });
+  }
+
+  else if (current_state.current_tool === 'image') {
+    current_element.width = current_coords.x - current_element.x;
+    current_element.height = current_coords.y - current_element.y;
   }
 
   render_canvas();
@@ -359,7 +394,7 @@ window.addEventListener('keydown', (e) => {
 const saved_data = localStorage.getItem('canvas');
 
 if (saved_data) {
-  //converting objects back into js objects
+  //converting string back into js objects
   const parsed_data = JSON.parse(saved_data);
   elements.push(...parsed_data); //to not push the whole array as one element
   render_canvas();
