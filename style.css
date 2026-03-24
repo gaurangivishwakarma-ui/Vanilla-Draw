@@ -91,3 +91,27 @@ body.dark-mode {
   color: #ffffff;
   transition: background-color 0.3s, color 0.3s;
 }
+
+
+.sidebar{
+font-family: "Lucida Console", "Courier New", monospace;
+position: absolute; 
+top: 150px; 
+left: 20px; 
+background: rgba(193, 191, 191, 0.5);
+padding: 10px; 
+border: 1px solid #ffffff; 
+display: flex; 
+flex-direction: column; 
+gap: 10px;
+border-radius: 5px;
+box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.3); 
+
+}
+
+#style-picker, #style-picker option {
+  font-family: "Lucida Console", "Courier New", monospace;
+  font-size: 14px;
+  padding: 2px 5px;
+  border-radius: 4px; 
+}
