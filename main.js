@@ -11,22 +11,24 @@ const tb = document.getElementById('togglebtn');
 tb.addEventListener('click', () => {
   document.body.classList.toggle('dark-mode');  /*dark mode on*/
   const dark_mode_on = document.body.classList.contains('dark-mode');
-    //update color for new shapes
-  if(dark_mode_on){
-  current_state.current_color =  '#FFFFFF' ;
-  }
-  else{
-    current_state.current_color =  '#000000' ;
+
+  //update color for new shapes
+  if (dark_mode_on && current_state.current_color === '#000000') {  // only change color if they are using the black/white 
+    current_state.current_color = '#FFFFFF';
+    document.getElementById('color-picker').value = '#FFFFFF';
+  } else if (!dark_mode_on && (current_state.current_color === '#FFFFFF')) {
+    current_state.current_color = '#000000';
+    document.getElementById('color-picker').value = '#000000';
   }
   //update existing shapes
   elements.forEach(e => {
-    if ( dark_mode_on){
-      e.color = '#FFFFFF'
-    }
-    else{
-      e.color = '#000000'
+    if (dark_mode_on && e.color === '#000000') {
+      e.color = '#FFFFFF'; //only black shapes turn to white and viceversa 
+    } else if (!dark_mode_on && (e.color === '#FFFFFF' || e.color === '#ffffff')) {
+      e.color = '#000000'; 
     }
     render_canvas();
+    save_canvas();
   })
   if (dark_mode_on) {
     tb.src = 'images/sun.png';
@@ -46,8 +48,9 @@ const current_state = {
   current_tool: "none",
   is_drawing: false,
   current_color: "#000000",
-  stroke_width: 2
-
+  stroke_width: 2,
+  opacity: 1,
+  stroke_style: "solid"
 };
 
 const history = []; /*stack for undo*/
@@ -71,26 +74,26 @@ function get_coordinates(event) {
   return { x, y }; //returns an object containing coordinates
 }
 
-function rectangle(e){
+function rectangle(e) {
   ctx.strokeRect(e.x, e.y, e.width, e.height);
 }
 
-function line(e){
-ctx.beginPath(); 
-ctx.moveTo(e.x, e.y); 
-ctx.lineTo(e.xf, e.yf); 
-ctx.stroke(); 
+function line(e) {
+  ctx.beginPath();
+  ctx.moveTo(e.x, e.y);
+  ctx.lineTo(e.xf, e.yf);
+  ctx.stroke();
 }
 
-function circle(e){
+function circle(e) {
   ctx.beginPath();
-  ctx.arc(e.center_x, e.centre_y, e.radius, 0, 2 * Math.PI); 
+  ctx.arc(e.center_x, e.centre_y, e.radius, 0, 2 * Math.PI);
   ctx.stroke();
 
 }
 
-function square(e){
-ctx.strokeRect(e.x, e.y, e.width, e.height);
+function square(e) {
+  ctx.strokeRect(e.x, e.y, e.width, e.height);
 
 }
 
@@ -99,7 +102,7 @@ function triangle(e) {
   ctx.moveTo(e.x + (e.width / 2), e.y);
   ctx.lineTo(e.x + e.width, e.y + e.height);
   ctx.lineTo(e.x, e.y + e.height);
-  ctx.closePath(); 
+  ctx.closePath();
   ctx.stroke();
 }
 
@@ -123,27 +126,35 @@ function render_canvas() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   elements.forEach(e => {
-    ctx.strokeStyle = e.color || current_state.current_color;
-    ctx.lineWidth = e.stroke_width || current_state.stroke_width;
+    
+    ctx.strokeStyle = e.color || "#000000";
+    ctx.lineWidth = e.stroke_width || 2;
+    ctx.globalAlpha = e.opacity || 1;
+
+    if (e.stroke_style === "dashed") {
+      ctx.setLineDash([ctx.lineWidth * 2, ctx.lineWidth * 2]); //ctx.setLineDash(dash length, gap length)
+    } else {
+      ctx.setLineDash([]); 
+    }
 
     switch (e.type) {
       case 'rectangle': rectangle(e);
-      break;
+        break;
 
       case 'line': line(e);
-      break;
+        break;
 
       case 'circle': circle(e);
-      break;
+        break;
 
       case 'square': square(e);
-      break;
+        break;
 
       case 'triangle': triangle(e);
-      break;
+        break;
 
       case 'pen': pen(e);
-      break;
+        break;
 
 
       //function to be completed
@@ -169,81 +180,93 @@ canvas.addEventListener('pointerdown', (event) => {
       width: 0,
       height: 0,
       color: current_state.current_color,
-      stroke_width: current_state.stroke_width
+      stroke_width: current_state.stroke_width,
+      opacity: current_state.opacity,
+      stroke_style: current_state.stroke_style
 
     };
     elements.push(current_element);
   }
 
-  else if (current_state.current_tool === 'line'){
+  else if (current_state.current_tool === 'line') {
 
     current_element = {
-      type: 'line' ,
+      type: 'line',
       x: coords.x,
       y: coords.y,
       xf: coords.x,
       yf: coords.y,
       color: current_state.current_color,
-      stroke_width: current_state.stroke_width
-      
+      stroke_width: current_state.stroke_width,
+      opacity: current_state.opacity,
+      stroke_style: current_state.stroke_style
+
     };
     elements.push(current_element);
   }
 
-  else if (current_state.current_tool === 'circle'){
-    
+  else if (current_state.current_tool === 'circle') {
+
     current_element = {
-      
-    type: 'circle',
-    center_x : coords.x,
-    centre_y : coords.y,
-    radius : 0,
-    color: current_state.current_color,
-    stroke_width: current_state.stroke_width
-    
+
+      type: 'circle',
+      center_x: coords.x,
+      centre_y: coords.y,
+      radius: 0,
+      color: current_state.current_color,
+      stroke_width: current_state.stroke_width,
+      opacity: current_state.opacity,
+      stroke_style: current_state.stroke_style
+
     };
     elements.push(current_element);
-    
+
   }
 
-  else if (current_state.current_tool === 'square'){
+  else if (current_state.current_tool === 'square') {
     current_element = {
       type: 'square',
-      x : coords.x,
-      y : coords.y,
-      width :0,
+      x: coords.x,
+      y: coords.y,
+      width: 0,
       height: 0,
       color: current_state.current_color,
-      stroke_width: current_state.stroke_width 
+      stroke_width: current_state.stroke_width,
+      opacity: current_state.opacity,
+      stroke_style: current_state.stroke_style
     };
     elements.push(current_element);
   }
 
-  else if (current_state.current_tool === 'triangle'){
+  else if (current_state.current_tool === 'triangle') {
 
     current_element = {
       type: 'triangle',
-      x : coords.x,
-      y : coords.y,
-      width :0,
+      x: coords.x,
+      y: coords.y,
+      width: 0,
       height: 0,
       color: current_state.current_color,
-      stroke_width: current_state.stroke_width 
+      stroke_width: current_state.stroke_width,
+      opacity: current_state.opacity,
+      stroke_style: current_state.stroke_style
 
     };
     elements.push(current_element);
   }
 
-  else if (current_state.current_tool === 'pen'){
+  else if (current_state.current_tool === 'pen') {
 
     current_element = {
-    type: 'pen',
-    points: [ { x: coords.x, y: coords.y } ],
-    color: current_state.current_color,
-    stroke_width: current_state.stroke_width 
-    
+      type: 'pen',
+      points: [{ x: coords.x, y: coords.y }],
+      color: current_state.current_color,
+      stroke_width: current_state.stroke_width,
+      opacity: current_state.opacity,
+      stroke_style: current_state.stroke_style
+
     };
-     elements.push(current_element);
+    elements.push(current_element);
   }
 
 
@@ -263,25 +286,25 @@ canvas.addEventListener('pointermove', (event) => {
     current_element.height = current_coords.y - current_element.y;
   }
 
-  else if (current_state.current_tool === 'line'){
+  else if (current_state.current_tool === 'line') {
     current_element.xf = current_coords.x,
-    current_element.yf = current_coords.y
+      current_element.yf = current_coords.y
 
   }
 
-  else if (current_state.current_tool === 'circle'){
+  else if (current_state.current_tool === 'circle') {
     const change_x = current_coords.x - current_element.center_x;
     const change_y = current_coords.y - current_element.centre_y;
-    current_element.radius = Math.hypot(change_x, change_y );
+    current_element.radius = Math.hypot(change_x, change_y);
   }
 
-  else if (current_state.current_tool === 'square'){
+  else if (current_state.current_tool === 'square') {
     const change_x = current_coords.x - current_element.x;
     const change_y = current_coords.y - current_element.y;
     const side = Math.max(Math.abs(change_x), Math.abs(change_y));
-    
+
     current_element.width = side * Math.sign(change_x);
-    current_element.height = side* Math.sign(change_y);
+    current_element.height = side * Math.sign(change_y);
 
   }
 
@@ -306,28 +329,28 @@ canvas.addEventListener('pointerup', (event) => {
   save_canvas();
 })
 
- 
+
 const toolbar = document.querySelectorAll('.item');
 
 toolbar.forEach(tool => {
-    tool.addEventListener('click', () => {
-        current_state.current_tool = tool.getAttribute('data-tool');
-        toolbar.forEach(btn => btn.classList.remove('active'));
-        tool.classList.add('active');
-    });
+  tool.addEventListener('click', () => {
+    current_state.current_tool = tool.getAttribute('data-tool');
+    toolbar.forEach(btn => btn.classList.remove('active'));
+    tool.classList.add('active');
+  });
 });
 
 resize_canvas();
 window.addEventListener('resize', () => {
   resize_canvas();
-  render_canvas(); 
+  render_canvas();
 });
 
 //pressing ctrl+z
 window.addEventListener('keydown', (e) => {
-  if ((e.ctrlKey  || e.metaKey)  && e.key.toLowerCase() === 'z') {
-    elements.pop(); 
-    render_canvas(); 
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+    elements.pop();
+    render_canvas();
     save_canvas();
   }
 });
@@ -336,8 +359,13 @@ window.addEventListener('keydown', (e) => {
 const saved_data = localStorage.getItem('canvas');
 
 if (saved_data) {
-//converting objects back into js objects
+  //converting objects back into js objects
   const parsed_data = JSON.parse(saved_data);
-  elements.push(...parsed_data); //to not push the whoel array as one element
+  elements.push(...parsed_data); //to not push the whole array as one element
   render_canvas();
 }
+
+document.getElementById('color-picker').addEventListener('input', (e) => current_state.current_color = e.target.value);
+document.getElementById('width-slider').addEventListener('input', (e) => current_state.stroke_width = parseInt(e.target.value));
+document.getElementById('opacity-slider').addEventListener('input', (e) => current_state.opacity = parseFloat(e.target.value));
+document.getElementById('style-picker').addEventListener('change', (e) => current_state.stroke_style = e.target.value);
