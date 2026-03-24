@@ -10,9 +10,14 @@ const tb = document.getElementById('togglebtn');
 
 tb.addEventListener('click', () => {
   document.body.classList.toggle('dark-mode');  /*dark mode on*/
-  //update color for new shapes
   const dark_mode_on = document.body.classList.contains('dark-mode');
+    //update color for new shapes
+  if(dark_mode_on){
   current_state.current_color =  '#FFFFFF' ;
+  }
+  else{
+    current_state.current_color =  '#000000' ;
+  }
   //update existing shapes
   elements.forEach(e => {
     if ( dark_mode_on){
@@ -109,6 +114,9 @@ function pen(e) {
   ctx.stroke();
 }
 
+function save_canvas() {
+  localStorage.setItem('canvas', JSON.stringify(elements));
+}
 
 /*looks at the elements array and renders canvas*/
 function render_canvas() {
@@ -295,6 +303,7 @@ canvas.addEventListener('pointermove', (event) => {
 canvas.addEventListener('pointerup', (event) => {
   current_state.is_drawing = false;
   current_element = null;
+  save_canvas();
 })
 
  
@@ -313,3 +322,22 @@ window.addEventListener('resize', () => {
   resize_canvas();
   render_canvas(); 
 });
+
+//pressing ctrl+z
+window.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey  || e.metaKey)  && e.key.toLowerCase() === 'z') {
+    elements.pop(); 
+    render_canvas(); 
+    save_canvas();
+  }
+});
+
+
+const saved_data = localStorage.getItem('canvas');
+
+if (saved_data) {
+//converting objects back into js objects
+  const parsed_data = JSON.parse(saved_data);
+  elements.push(...parsed_data); //to not push the whoel array as one element
+  render_canvas();
+}
