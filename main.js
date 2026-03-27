@@ -42,7 +42,26 @@ tb.addEventListener('click', () => {
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-const elements = [];
+let elements = [];
+let redo_stack = [];
+
+function perform_undo() {
+    if (elements.length > 0) {
+        const popped_element = elements.pop(); //remove element
+        redo_stack.push(popped_element);       //save to redo stack
+        render_canvas();                      
+        save_canvas();                         
+    }
+}
+
+function perform_redo() {
+    if (redo_stack.length > 0) {
+        const restored_element = redo_stack.pop(); //take elements out of redo stack
+        elements.push(restored_element);           
+        render_canvas();                           
+        save_canvas();                             
+    }
+}
 
 const current_state = {
   current_tool: "none",
@@ -601,6 +620,7 @@ else if (current_state.current_tool === 'text') {
         };
         
         elements.push(new_text_element);
+        redo_stack = [];
         
         //to allow drag
         selected_element = new_text_element; 
@@ -845,7 +865,7 @@ canvas.addEventListener('pointerup', (event) => {
   is_dragging_shape = false;
   active_resize_handle = null;
   is_rotating = false;
-
+  redo_stack = [];
   save_canvas();
   render_canvas();
 });
@@ -868,15 +888,21 @@ window.addEventListener('resize', () => {
   render_canvas();
 });
 
+const active_keys = new Set();
+
 //pressing ctrl+z
 window.addEventListener('keydown', (e) => {
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
-    elements.pop();
-    render_canvas();
-    save_canvas();
+  active_keys.add(e.key.toLowerCase());
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && active_keys.size === 2) {
+    e.preventDefault(); 
+    if (elements.length > 0) {
+      const popped = elements.pop();
+      redo_stack.push(popped); 
+      render_canvas();
+      save_canvas();
+    }
   }
 });
-
 
 const saved_data = localStorage.getItem('canvas');
 
@@ -893,3 +919,14 @@ document.getElementById('opacity-slider').addEventListener('input', (e) => curre
 document.getElementById('style-picker').addEventListener('change', (e) => current_state.stroke_style = e.target.value);
 document.getElementById('font-size-picker').addEventListener('input', (e) => current_state.font_size = parseInt(e.target.value));
 document.getElementById('font-family-picker').addEventListener('change', (e) => current_state.font_family = e.target.value);
+document.getElementById('undo-btn').addEventListener('click', perform_undo);
+document.getElementById('redo-btn').addEventListener('click', perform_redo);
+document.getElementById('clear-btn').addEventListener('click', () => {
+    //asks for confirmation
+    if (confirm("Are you sure you want to clear the entire canvas?")) {
+        elements = [];     
+        redo_stack = [];  
+        render_canvas();   
+        save_canvas();    
+    }
+});

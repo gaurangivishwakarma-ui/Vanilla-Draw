@@ -36,8 +36,7 @@
                 <option value="dashed">Dashed</option>
             </select>
         </label>
-
-        <hr> <label>Font Size: <input type="number" id="font-size-picker" min="10" max="150" value="24"></label>
+        <label>Font Size: <input type="number" id="font-size-picker" min="10" max="150" value="24"></label>
         <label>Font:
             <select id="font-family-picker">
                 <option value="Arial" style="font-family: Arial;">Arial</option>
@@ -48,7 +47,12 @@
                 <option value="Comic Sans MS" style="font-family: 'Comic Sans MS';">Comic Sans</option>
             </select>
         </label>
+    </div>
 
+    <div class="action-buttons">
+        <button id="undo-btn">Undo</button>
+        <button id="redo-btn">Redo</button>
+        <button id="clear-btn">Clear Canvas</button>
     </div>
 
     <script src="main.js"></script>
