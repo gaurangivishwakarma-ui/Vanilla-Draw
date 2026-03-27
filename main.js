@@ -25,7 +25,7 @@ tb.addEventListener('click', () => {
     if (dark_mode_on && e.color === '#000000') {
       e.color = '#FFFFFF'; //only black shapes turn to white and viceversa 
     } else if (!dark_mode_on && (e.color === '#FFFFFF' || e.color === '#ffffff')) {
-      e.color = '#000000'; 
+      e.color = '#000000';
     }
     render_canvas();
     save_canvas();
@@ -134,7 +134,7 @@ function draw_image(e) {
   }
   if (img.complete) {
     ctx.drawImage(img, e.x, e.y, e.width, e.height);
-  } 
+  }
 }
 //calculates the dimension of the blue box
 function get_bounding_box(e) {
@@ -148,7 +148,7 @@ function get_bounding_box(e) {
   } else if (e.type === 'circle') {
     return {
       x: e.center_x - e.radius,
-      y: e.centre_y - e.radius, 
+      y: e.centre_y - e.radius,
       width: e.radius * 2,
       height: e.radius * 2
     };
@@ -174,14 +174,14 @@ function get_bounding_box(e) {
 
 // find which element we are inside
 function get_element_at_position(x, y) {
-  for (let i = elements.length - 1; i >= 0; i--) { 
+  for (let i = elements.length - 1; i >= 0; i--) {
     const e = elements[i];
     const bounds = get_bounding_box(e);
-    
+
     //5px padding so even if user hits a bit off, it still detects
-    if (x >= bounds.x - 5 && x <= bounds.x + bounds.width + 5 && 
-        y >= bounds.y - 5 && y <= bounds.y + bounds.height + 5) {
-      
+    if (x >= bounds.x - 5 && x <= bounds.x + bounds.width + 5 &&
+      y >= bounds.y - 5 && y <= bounds.y + bounds.height + 5) {
+
       //radius check so clicking the corner of its box  in circle doesn't select it
       if (e.type === 'circle') {
         const distance = Math.hypot(x - e.center_x, y - e.centre_y);
@@ -194,13 +194,88 @@ function get_element_at_position(x, y) {
   return null;
 }
 
+// checks which corner box is being clicked
+function get_clicked_handle(mouse_x, mouse_y, shape) {
+  const handle_size = 10; //padding so that if a user click is a bit off it still detects user hit 
+  const bounds = get_bounding_box(shape);
+
+  const is_inside = (x, y, corner_x, corner_y) => {
+    return x >= corner_x - handle_size && x <= corner_x + handle_size &&
+      y >= corner_y - handle_size && y <= corner_y + handle_size;
+  };
+
+  if (is_inside(mouse_x, mouse_y, bounds.x, bounds.y)) return 'tl'; //topleft
+  if (is_inside(mouse_x, mouse_y, bounds.x + bounds.width, bounds.y)) return 'tr'; //topright
+  if (is_inside(mouse_x, mouse_y, bounds.x, bounds.y + bounds.height)) return 'bl'; //bottomleft
+  if (is_inside(mouse_x, mouse_y, bounds.x + bounds.width, bounds.y + bounds.height)) return 'br'; //bottomright
+
+  return null;
+}
+
+//function to handle negative widths 
+function adjust_element_coordinates(shape) {
+  if (shape.width !== undefined && shape.height !== undefined) {
+
+    if (shape.width < 0) {
+      shape.x = shape.x + shape.width; //shift x left 
+      shape.width = Math.abs(shape.width);
+    }
+
+    if (shape.height < 0) {
+      shape.y = shape.y + shape.height; //shift y up 
+      shape.height = Math.abs(shape.height);
+    }
+  }
+}
+
+//function to draw boxes on corner
+function draw_resize_handles(shape, ctx) {
+  const handle_size = 8;
+  const offset = handle_size / 2;
+  const bounds = get_bounding_box(shape);
+
+  ctx.fillStyle = 'white';
+  ctx.strokeStyle = '#0078D7';
+  ctx.lineWidth = 2;
+
+  const corners = [
+    { x: bounds.x, y: bounds.y },
+    { x: bounds.x + bounds.width, y: bounds.y },
+    { x: bounds.x, y: bounds.y + bounds.height },
+    { x: bounds.x + bounds.width, y: bounds.y + bounds.height }
+  ];
+
+  corners.forEach(corner => {
+    ctx.fillRect(corner.x - offset, corner.y - offset, handle_size, handle_size);
+    ctx.strokeRect(corner.x - offset, corner.y - offset, handle_size, handle_size);
+  });
+}
+
+//function to rotate a point around a center 
+function rotate_point(x, y, cx, cy, angle) {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const nx = (cos * (x - cx)) - (sin * (y - cy)) + cx;
+  const ny = (sin * (x - cx)) + (cos * (y - cy)) + cy;
+  return { x: nx, y: ny };
+}
 
 /*looks at the elements array and renders canvas*/
 function render_canvas() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   elements.forEach(e => {
-    
+
+    ctx.save(); //saves the canvas
+
+    const bounds = get_bounding_box(e);
+    const center_x = bounds.x + bounds.width / 2;
+    const center_y = bounds.y + bounds.height / 2;
+
+    ctx.translate(center_x, center_y); //makes the center of canvas to be centre of shape
+    ctx.rotate(e.angle || 0); //rotation
+    ctx.translate(-center_x, -center_y); //reverses it 
+
     ctx.strokeStyle = e.color || "#000000";
     ctx.lineWidth = e.stroke_width || 2;
     ctx.globalAlpha = e.opacity || 1;
@@ -208,7 +283,7 @@ function render_canvas() {
     if (e.stroke_style === "dashed") {
       ctx.setLineDash([ctx.lineWidth * 2, ctx.lineWidth * 2]); //ctx.setLineDash(dash length, gap length)
     } else {
-      ctx.setLineDash([]); 
+      ctx.setLineDash([]);
     }
 
     switch (e.type) {
@@ -230,22 +305,42 @@ function render_canvas() {
       case 'pen': pen(e);
         break;
 
-      case 'image' : draw_image(e);
+      case 'image': draw_image(e);
         break;
 
 
       //function to be completed
     }
-  }
-  )
-  if (selected_element) {
-    ctx.strokeStyle = '#0078D7';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([5, 5]); 
-    const bounds = get_bounding_box(selected_element);
-    ctx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
-    ctx.setLineDash([]); 
-  }
+
+    //draws the resize handles, bounding box and rotation handle
+    if (e === selected_element && current_state.current_tool === 'select') {
+      ctx.strokeStyle = '#0078D7';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      const bounds = get_bounding_box(selected_element);
+      ctx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height); //bounding box 
+      ctx.setLineDash([]);
+
+      draw_resize_handles(selected_element, ctx);
+      const handle_distance = 30;
+      const handle_y = bounds.y - handle_distance;   //rotation handle
+      const top_center_x = bounds.x + bounds.width / 2;
+
+      ctx.beginPath();
+      ctx.moveTo(top_center_x, bounds.y);
+      ctx.lineTo(top_center_x, handle_y);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(top_center_x, handle_y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = 'blue';   //dot 
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    ctx.restore();
+
+  });
 }
 
 //tool selection logic
@@ -255,13 +350,64 @@ let selected_element = null;
 let drag_offsetX = 0;
 let drag_offsetY = 0;
 let is_dragging_shape = false;
+let is_resizing = false;
+let active_resize_handle = null;
+let is_rotating = false;
 
 //pointerdown event tracks the start of the event 
 canvas.addEventListener('pointerdown', (event) => {
   current_state.is_drawing = true;
   const coords = get_coordinates(event);
 
-  if (current_state.current_tool === 'rectangle') {
+  if (current_state.current_tool === 'select') {
+    if (selected_element) {
+      const bounds = get_bounding_box(selected_element); 
+      const cx = bounds.x + bounds.width / 2;
+      const cy = bounds.y + bounds.height / 2;  //center of shape
+      const angle = selected_element.angle || 0;
+      const unrotated_click = rotate_point(coords.x, coords.y, cx, cy, -angle);  //unrotating the mouse as canvas got rotated
+      const clicked_handle = get_clicked_handle(unrotated_click.x, unrotated_click.y, selected_element);
+      if (clicked_handle) {
+        is_resizing = true;
+        active_resize_handle = clicked_handle;
+        return;
+      }
+    }
+
+    if (selected_element) {
+      const bounds = get_bounding_box(selected_element);
+
+      const center_x = bounds.x + bounds.width / 2;
+      const center_y = bounds.y + bounds.height / 2;
+      const distance_to_handle = (bounds.height / 2) + 30;  //distance of handle to center 
+
+      const handle_x = center_x + distance_to_handle * Math.sin(selected_element.angle || 0);
+      const handle_y = center_y - distance_to_handle * Math.cos(selected_element.angle || 0); //exact location of blue dot
+
+      const dx = coords.x - handle_x;
+      const dy = coords.y - handle_y;
+      const distance_to_mouse = Math.sqrt(dx * dx + dy * dy); 
+
+      if (distance_to_mouse <= 10) {  //10 padding 
+        is_rotating = true;
+        return;
+      }
+    }
+
+    selected_element = get_element_at_position(coords.x, coords.y);
+
+    if (selected_element) {
+      is_dragging_shape = true;
+      const bounds = get_bounding_box(selected_element);
+      drag_offsetX = coords.x - bounds.x;
+      drag_offsetY = coords.y - bounds.y;
+    }
+
+    render_canvas();
+    return;
+  }
+
+  else if (current_state.current_tool === 'rectangle') {
     current_element = {
       type: 'rectangle',
       x: coords.x,
@@ -359,40 +505,148 @@ canvas.addEventListener('pointerdown', (event) => {
   }
 
   else if (current_state.current_tool === 'image') {
-  current_element = {
-    type: 'image',
-    x: coords.x,
-    y: coords.y,
-    width: 300,
-    height: 300,
-    url: `https://picsum.photos/seed/${Math.random()}/400/400`
-  };
-  elements.push(current_element);
-}
-
-else if (current_state.current_tool === 'select') {
-    selected_element = get_element_at_position(coords.x, coords.y);
-    if (selected_element) {
-      is_dragging_shape = true;
-      const bounds = get_bounding_box(selected_element);
-      drag_offsetX = coords.x - bounds.x;
-      drag_offsetY = coords.y - bounds.y;
-    }
-    render_canvas();
-    return; 
+    current_element = {
+      type: 'image',
+      x: coords.x,
+      y: coords.y,
+      width: 300,
+      height: 300,
+      url: `https://picsum.photos/seed/${Math.random()}/400/400`
+    };
+    elements.push(current_element);
   }
-
-}
-)
-
-
-//pointermove event when we are actively dragging
+})
 
 canvas.addEventListener('pointermove', (event) => {
   if (!current_state.is_drawing) {
     return;
   }
   const current_coords = get_coordinates(event);
+  const current_x = current_coords.x;
+  const current_y = current_coords.y;
+
+  if (is_rotating && selected_element) {
+    const bounds = get_bounding_box(selected_element);
+    const center_x = bounds.x + bounds.width / 2;
+    const center_y = bounds.y + bounds.height / 2;
+
+    const delta_x = current_x - center_x;
+    const delta_y = current_y - center_y;
+
+    selected_element.angle = Math.atan2(delta_y, delta_x) + (Math.PI / 2);  //how much angle has it been rotated
+    render_canvas();
+    return;
+  }
+
+  if (is_resizing && selected_element) {
+
+    const bounds = get_bounding_box(selected_element);
+    const cx = bounds.x + bounds.width / 2;
+    const cy = bounds.y + bounds.height / 2;
+    const angle = selected_element.angle || 0;
+    const unrotated_mouse = rotate_point(current_x, current_y, cx, cy, -angle);
+    const active_x = unrotated_mouse.x;
+    const active_y = unrotated_mouse.y;
+
+    if (selected_element.type === 'circle') {
+      selected_element.radius = Math.hypot(active_x - selected_element.center_x, active_y - selected_element.centre_y);
+    }
+
+    else if (selected_element.type === 'line') {
+      if (active_resize_handle === 'tl' || active_resize_handle === 'bl') {
+        selected_element.x = active_x; selected_element.y = active_y;
+      } else {
+        selected_element.xf = active_x; selected_element.yf = active_y;
+      }
+    }
+    
+    else if (['rectangle', 'square', 'triangle', 'image'].includes(selected_element.type)) {
+      const old_center_x = selected_element.x + selected_element.width / 2;
+      const old_center_y = selected_element.y + selected_element.height / 2;
+      let anchor_local_x, anchor_local_y;
+      switch (active_resize_handle) {
+        case 'tl': anchor_local_x = selected_element.x + selected_element.width; anchor_local_y = selected_element.y + selected_element.height; break;
+        case 'tr': anchor_local_x = selected_element.x; anchor_local_y = selected_element.y + selected_element.height; break;
+        case 'bl': anchor_local_x = selected_element.x + selected_element.width; anchor_local_y = selected_element.y; break;
+        case 'br': anchor_local_x = selected_element.x; anchor_local_y = selected_element.y; break;
+      }
+      const old_anchor_global = rotate_point(anchor_local_x, anchor_local_y, old_center_x, old_center_y, angle);
+      const orig_right = selected_element.x + selected_element.width;
+      const orig_bottom = selected_element.y + selected_element.height;
+
+      switch (active_resize_handle) {
+        case 'tl':
+          selected_element.width = orig_right - active_x;
+          selected_element.height = orig_bottom - active_y;
+          selected_element.x = active_x;
+          selected_element.y = active_y;
+          break;
+        case 'tr':
+          selected_element.width = active_x - selected_element.x;
+          selected_element.height = orig_bottom - active_y;
+          selected_element.y = active_y;
+          break;
+        case 'bl':
+          selected_element.width = orig_right - active_x;
+          selected_element.height = active_y - selected_element.y;
+          selected_element.x = active_x;
+          break;
+        case 'br':
+          selected_element.width = active_x - selected_element.x;
+          selected_element.height = active_y - selected_element.y;
+          break;
+      }
+
+      const new_center_x = selected_element.x + selected_element.width / 2;
+      const new_center_y = selected_element.y + selected_element.height / 2;
+      const new_anchor_global = rotate_point(anchor_local_x, anchor_local_y, new_center_x, new_center_y, angle);
+      selected_element.x += old_anchor_global.x - new_anchor_global.x;
+      selected_element.y += old_anchor_global.y - new_anchor_global.y;
+    }
+
+    else if (selected_element.type === 'pen') {
+      const bounds = get_bounding_box(selected_element);
+      const safe_width = bounds.width === 0 ? 0.001 : bounds.width;
+      const safe_height = bounds.height === 0 ? 0.001 : bounds.height;
+      let anchor_x, anchor_y, new_width, new_height;
+      switch (active_resize_handle) {
+        case 'tl':
+          anchor_x = bounds.x + bounds.width;
+          anchor_y = bounds.y + bounds.height;
+          new_width = anchor_x - current_x;
+          new_height = anchor_y - current_y;
+          break;
+        case 'tr':
+          anchor_x = bounds.x;
+          anchor_y = bounds.y + bounds.height;
+          new_width = current_x - anchor_x;
+          new_height = anchor_y - current_y;
+          break;
+        case 'bl':
+          anchor_x = bounds.x + bounds.width;
+          anchor_y = bounds.y;
+          new_width = anchor_x - current_x;
+          new_height = current_y - anchor_y;
+          break;
+        case 'br':
+          anchor_x = bounds.x;
+          anchor_y = bounds.y;
+          new_width = current_x - anchor_x;
+          new_height = current_y - anchor_y;
+          break;
+      }
+
+      const scaleX = new_width / safe_width;
+      const scaleY = new_height / safe_height;
+      selected_element.points.forEach(p => {
+        p.x = anchor_x + (p.x - anchor_x) * scaleX;
+        p.y = anchor_y + (p.y - anchor_y) * scaleY;
+      });
+    }
+    render_canvas();
+    return;
+  }
+
   if (current_state.current_tool === 'rectangle') {
     current_element.width = current_coords.x - current_element.x;
     current_element.height = current_coords.y - current_element.y;
@@ -474,24 +728,25 @@ canvas.addEventListener('pointermove', (event) => {
 canvas.addEventListener('pointerup', (event) => {
   current_state.is_drawing = false;
   current_element = null;
-  save_canvas();
 
-  if (current_state.current_tool === 'select') {
-    is_dragging_shape = false;
-    save_canvas();
-    return;
+  if (is_resizing && selected_element) {
+    adjust_element_coordinates(selected_element);
   }
+  is_resizing = false;
+  is_dragging_shape = false;
+  active_resize_handle = null;
+  is_rotating = false;
 
-  
-})
-
+  save_canvas();
+  render_canvas();
+});
 
 const toolbar = document.querySelectorAll('.item');
 
 toolbar.forEach(tool => {
   tool.addEventListener('click', () => {
     current_state.current_tool = tool.getAttribute('data-tool');
-    selected_element = null; 
+    selected_element = null;
     render_canvas();
     toolbar.forEach(btn => btn.classList.remove('active'));
     tool.classList.add('active');
