@@ -50,7 +50,9 @@ const current_state = {
   current_color: "#000000",
   stroke_width: 2,
   opacity: 1,
-  stroke_style: "solid"
+  stroke_style: "solid",
+  font_size: 24,          
+  font_family: ' "Lucida Console", "Courier New", monospace'   
 };
 
 const history = []; /*stack for undo*/
@@ -168,6 +170,13 @@ function get_bounding_box(e) {
       if (p.y > maxY) maxY = p.y;
     }
     return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+  } else if (e.type === 'text') {
+    return {
+      x: e.x,
+      y: e.y,
+      width: e.width,
+      height: e.height
+    };
   }
   return { x: 0, y: 0, width: 0, height: 0 };
 }
@@ -260,6 +269,14 @@ function rotate_point(x, y, cx, cy, angle) {
   return { x: nx, y: ny };
 }
 
+function text(e){
+      ctx.font = `${e.fontSize}px ${e.fontFamily}`;
+      ctx.fillStyle = e.color || '#000000';
+      ctx.textBaseline = 'top'; 
+      ctx.fillText(e.text, e.x, e.y); 
+    
+}
+
 /*looks at the elements array and renders canvas*/
 function render_canvas() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -308,8 +325,9 @@ function render_canvas() {
       case 'image': draw_image(e);
         break;
 
+      case 'text': text(e);
+        break;
 
-      //function to be completed
     }
 
     //draws the resize handles, bounding box and rotation handle
@@ -515,6 +533,97 @@ canvas.addEventListener('pointerdown', (event) => {
     };
     elements.push(current_element);
   }
+else if (current_state.current_tool === 'text') {
+    const rect = canvas.getBoundingClientRect();
+    const screen_x = rect.left + coords.x;
+    const screen_y = rect.top + coords.y;
+
+    const input = document.createElement('textarea');
+
+    input.style.position = 'fixed'; 
+    input.style.left = screen_x + 'px';
+    input.style.top = screen_y + 'px';
+  
+    input.style.zIndex = '100000'; //forcing input html to be on top of all layers
+    
+    input.style.background = 'transparent';
+    input.style.border = '1px dashed #0078D7'; 
+    input.style.outline = 'none';
+    input.style.resize = 'none'; 
+    input.style.overflow = 'hidden';
+    input.style.whiteSpace = 'pre'; 
+    input.style.padding = '0'; 
+    input.style.margin = '0';
+
+  
+    const font_size = current_state.font_size;
+    const font_family = current_state.font_family;
+    input.style.font = `${font_size}px ${font_family}`;
+    input.style.font = `${font_size}px ${font_family}`;
+    input.style.color = current_state.current_color; 
+
+    input.style.width = '300px'; 
+    input.style.height = `${font_size * 2}px`; 
+
+    document.body.appendChild(input);
+    
+    //waits for browsers default behaviour to finish and puts a blinking cursor 10 ms later
+    setTimeout(() => {
+      input.focus();
+    }, 10);
+
+    //prevents new line behaviour on entering rather saves to canvas
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault(); 
+        input.blur();       
+      }
+    });
+
+    input.addEventListener('blur', function() {
+      const text_value = input.value.trim();
+      
+      if (text_value.length > 0) {
+        ctx.font = `${font_size}px ${font_family}`;
+        const text_width = ctx.measureText(text_value).width;
+
+        const new_text_element = {
+          type: 'text',
+          text: text_value,
+          x: coords.x,
+          y: coords.y,
+          fontSize: font_size,
+          fontFamily: font_family,
+          width: text_width,                 
+          height: font_size,
+          color: current_state.current_color, 
+          angle: 0 
+        };
+        
+        elements.push(new_text_element);
+        
+        //to allow drag
+        selected_element = new_text_element; 
+        
+        render_canvas(); 
+        save_canvas(); 
+      }
+      
+      if (document.body.contains(input)) {
+        document.body.removeChild(input);
+      }
+    });
+
+    //to drag and rotate
+
+    current_state.current_tool = 'select'; 
+    document.querySelectorAll('.item').forEach(btn => btn.classList.remove('active'));
+    
+    const select_btn = document.querySelector('[data-tool="select"]');
+    if (select_btn) select_btn.classList.add('active');
+    
+    return;
+  }
 })
 
 canvas.addEventListener('pointermove', (event) => {
@@ -697,7 +806,7 @@ canvas.addEventListener('pointermove', (event) => {
       const dx = targetX - bounds.x;
       const dy = targetY - bounds.y;
       //shift by that amount
-      if (selected_element.type === 'rectangle' || selected_element.type === 'square' || selected_element.type === 'image' || selected_element.type === 'triangle') {
+      if (selected_element.type === 'rectangle' || selected_element.type === 'square' || selected_element.type === 'image' || selected_element.type === 'triangle'|| selected_element.type === 'text') {
         selected_element.x += dx;
         selected_element.y += dy;
       } else if (selected_element.type === 'circle') {
@@ -782,3 +891,5 @@ document.getElementById('color-picker').addEventListener('input', (e) => current
 document.getElementById('width-slider').addEventListener('input', (e) => current_state.stroke_width = parseInt(e.target.value));
 document.getElementById('opacity-slider').addEventListener('input', (e) => current_state.opacity = parseFloat(e.target.value));
 document.getElementById('style-picker').addEventListener('change', (e) => current_state.stroke_style = e.target.value);
+document.getElementById('font-size-picker').addEventListener('input', (e) => current_state.font_size = parseInt(e.target.value));
+document.getElementById('font-family-picker').addEventListener('change', (e) => current_state.font_family = e.target.value);
