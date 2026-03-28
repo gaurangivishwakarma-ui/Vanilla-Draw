@@ -46,21 +46,21 @@ let elements = [];
 let redo_stack = [];
 
 function perform_undo() {
-    if (elements.length > 0) {
-        const popped_element = elements.pop(); //remove element
-        redo_stack.push(popped_element);       //save to redo stack
-        render_canvas();                      
-        save_canvas();                         
-    }
+  if (elements.length > 0) {
+    const popped_element = elements.pop(); //remove element
+    redo_stack.push(popped_element);       //save to redo stack
+    render_canvas();
+    save_canvas();
+  }
 }
 
 function perform_redo() {
-    if (redo_stack.length > 0) {
-        const restored_element = redo_stack.pop(); //take elements out of redo stack
-        elements.push(restored_element);           
-        render_canvas();                           
-        save_canvas();                             
-    }
+  if (redo_stack.length > 0) {
+    const restored_element = redo_stack.pop(); //take elements out of redo stack
+    elements.push(restored_element);
+    render_canvas();
+    save_canvas();
+  }
 }
 
 const current_state = {
@@ -70,8 +70,8 @@ const current_state = {
   stroke_width: 2,
   opacity: 1,
   stroke_style: "solid",
-  font_size: 24,          
-  font_family: ' "Lucida Console", "Courier New", monospace'   
+  font_size: 24,
+  font_family: ' "Lucida Console", "Courier New", monospace'
 };
 
 const history = []; /*stack for undo*/
@@ -288,12 +288,12 @@ function rotate_point(x, y, cx, cy, angle) {
   return { x: nx, y: ny };
 }
 
-function text(e){
-      ctx.font = `${e.fontSize}px ${e.fontFamily}`;
-      ctx.fillStyle = e.color || '#000000';
-      ctx.textBaseline = 'top'; 
-      ctx.fillText(e.text, e.x, e.y); 
-    
+function text(e) {
+  ctx.font = `${e.fontSize}px ${e.fontFamily}`;
+  ctx.fillStyle = e.color || '#000000';
+  ctx.textBaseline = 'top';
+  ctx.fillText(e.text, e.x, e.y);
+
 }
 
 /*looks at the elements array and renders canvas*/
@@ -398,7 +398,7 @@ canvas.addEventListener('pointerdown', (event) => {
 
   if (current_state.current_tool === 'select') {
     if (selected_element) {
-      const bounds = get_bounding_box(selected_element); 
+      const bounds = get_bounding_box(selected_element);
       const cx = bounds.x + bounds.width / 2;
       const cy = bounds.y + bounds.height / 2;  //center of shape
       const angle = selected_element.angle || 0;
@@ -423,7 +423,7 @@ canvas.addEventListener('pointerdown', (event) => {
 
       const dx = coords.x - handle_x;
       const dy = coords.y - handle_y;
-      const distance_to_mouse = Math.sqrt(dx * dx + dy * dy); 
+      const distance_to_mouse = Math.sqrt(dx * dx + dy * dy);
 
       if (distance_to_mouse <= 10) {  //10 padding 
         is_rotating = true;
@@ -442,6 +442,21 @@ canvas.addEventListener('pointerdown', (event) => {
 
     render_canvas();
     return;
+  }
+
+  if (current_state.current_tool === 'eraser') {
+    const clicked_element = get_element_at_position(coords.x, coords.y);
+    if (clicked_element) {
+      const index = elements.indexOf(clicked_element);
+      if (index !== -1) {
+        elements.splice(index, 1);
+        redo_stack = [];
+        selected_element = null;
+        render_canvas();
+        save_canvas();
+      }
+    }
+    return; 
   }
 
   else if (current_state.current_tool === 'rectangle') {
@@ -552,56 +567,56 @@ canvas.addEventListener('pointerdown', (event) => {
     };
     elements.push(current_element);
   }
-else if (current_state.current_tool === 'text') {
+  else if (current_state.current_tool === 'text') {
     const rect = canvas.getBoundingClientRect();
     const screen_x = rect.left + coords.x;
     const screen_y = rect.top + coords.y;
 
     const input = document.createElement('textarea');
 
-    input.style.position = 'fixed'; 
+    input.style.position = 'fixed';
     input.style.left = screen_x + 'px';
     input.style.top = screen_y + 'px';
-  
+
     input.style.zIndex = '100000'; //forcing input html to be on top of all layers
-    
+
     input.style.background = 'transparent';
-    input.style.border = '1px dashed #0078D7'; 
+    input.style.border = '1px dashed #0078D7';
     input.style.outline = 'none';
-    input.style.resize = 'none'; 
+    input.style.resize = 'none';
     input.style.overflow = 'hidden';
-    input.style.whiteSpace = 'pre'; 
-    input.style.padding = '0'; 
+    input.style.whiteSpace = 'pre';
+    input.style.padding = '0';
     input.style.margin = '0';
 
-  
+
     const font_size = current_state.font_size;
     const font_family = current_state.font_family;
     input.style.font = `${font_size}px ${font_family}`;
     input.style.font = `${font_size}px ${font_family}`;
-    input.style.color = current_state.current_color; 
+    input.style.color = current_state.current_color;
 
-    input.style.width = '300px'; 
-    input.style.height = `${font_size * 2}px`; 
+    input.style.width = '300px';
+    input.style.height = `${font_size * 2}px`;
 
     document.body.appendChild(input);
-    
+
     //waits for browsers default behaviour to finish and puts a blinking cursor 10 ms later
     setTimeout(() => {
       input.focus();
     }, 10);
 
     //prevents new line behaviour on entering rather saves to canvas
-    input.addEventListener('keydown', function(e) {
+    input.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') {
-        e.preventDefault(); 
-        input.blur();       
+        e.preventDefault();
+        input.blur();
       }
     });
 
-    input.addEventListener('blur', function() {
+    input.addEventListener('blur', function () {
       const text_value = input.value.trim();
-      
+
       if (text_value.length > 0) {
         ctx.font = `${font_size}px ${font_family}`;
         const text_width = ctx.measureText(text_value).width;
@@ -613,22 +628,22 @@ else if (current_state.current_tool === 'text') {
           y: coords.y,
           fontSize: font_size,
           fontFamily: font_family,
-          width: text_width,                 
+          width: text_width,
           height: font_size,
-          color: current_state.current_color, 
-          angle: 0 
+          color: current_state.current_color,
+          angle: 0
         };
-        
+
         elements.push(new_text_element);
         redo_stack = [];
-        
+
         //to allow drag
-        selected_element = new_text_element; 
-        
-        render_canvas(); 
-        save_canvas(); 
+        selected_element = new_text_element;
+
+        render_canvas();
+        save_canvas();
       }
-      
+
       if (document.body.contains(input)) {
         document.body.removeChild(input);
       }
@@ -636,12 +651,12 @@ else if (current_state.current_tool === 'text') {
 
     //to drag and rotate
 
-    current_state.current_tool = 'select'; 
+    current_state.current_tool = 'select';
     document.querySelectorAll('.item').forEach(btn => btn.classList.remove('active'));
-    
+
     const select_btn = document.querySelector('[data-tool="select"]');
     if (select_btn) select_btn.classList.add('active');
-    
+
     return;
   }
 })
@@ -688,8 +703,8 @@ canvas.addEventListener('pointermove', (event) => {
         selected_element.xf = active_x; selected_element.yf = active_y;
       }
     }
-    
-    else if (['rectangle', 'square', 'triangle', 'image'].includes(selected_element.type)) {
+
+    else if (['rectangle', 'square', 'triangle', 'image', 'text'].includes(selected_element.type)) {
       const old_center_x = selected_element.x + selected_element.width / 2;
       const old_center_y = selected_element.y + selected_element.height / 2;
       let anchor_local_x, anchor_local_y;
@@ -731,6 +746,15 @@ canvas.addEventListener('pointermove', (event) => {
       const new_anchor_global = rotate_point(anchor_local_x, anchor_local_y, new_center_x, new_center_y, angle);
       selected_element.x += old_anchor_global.x - new_anchor_global.x;
       selected_element.y += old_anchor_global.y - new_anchor_global.y;
+      
+      if (selected_element.type === 'text') {
+        selected_element.fontSize = Math.max(5, Math.abs(selected_element.height));
+        selected_element.height = selected_element.fontSize; 
+        ctx.font = `${selected_element.fontSize}px ${selected_element.fontFamily}`;
+        const true_width = ctx.measureText(selected_element.text).width;
+        selected_element.width = true_width*Math.sign(selected_element.width || 1) ; 
+      }
+      
     }
 
     else if (selected_element.type === 'pen') {
@@ -826,7 +850,7 @@ canvas.addEventListener('pointermove', (event) => {
       const dx = targetX - bounds.x;
       const dy = targetY - bounds.y;
       //shift by that amount
-      if (selected_element.type === 'rectangle' || selected_element.type === 'square' || selected_element.type === 'image' || selected_element.type === 'triangle'|| selected_element.type === 'text') {
+      if (selected_element.type === 'rectangle' || selected_element.type === 'square' || selected_element.type === 'image' || selected_element.type === 'triangle' || selected_element.type === 'text') {
         selected_element.x += dx;
         selected_element.y += dy;
       } else if (selected_element.type === 'circle') {
@@ -888,16 +912,15 @@ window.addEventListener('resize', () => {
   render_canvas();
 });
 
-const active_keys = new Set();
 
 //pressing ctrl+z
 window.addEventListener('keydown', (e) => {
-  active_keys.add(e.key.toLowerCase());
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && active_keys.size === 2) {
-    e.preventDefault(); 
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+    e.preventDefault();
     if (elements.length > 0) {
       const popped = elements.pop();
-      redo_stack.push(popped); 
+      redo_stack.push(popped);
       render_canvas();
       save_canvas();
     }
@@ -922,11 +945,11 @@ document.getElementById('font-family-picker').addEventListener('change', (e) => 
 document.getElementById('undo-btn').addEventListener('click', perform_undo);
 document.getElementById('redo-btn').addEventListener('click', perform_redo);
 document.getElementById('clear-btn').addEventListener('click', () => {
-    //asks for confirmation
-    if (confirm("Are you sure you want to clear the entire canvas?")) {
-        elements = [];     
-        redo_stack = [];  
-        render_canvas();   
-        save_canvas();    
-    }
+  //asks for confirmation
+  if (confirm("Are you sure you want to clear the entire canvas?")) {
+    elements = [];
+    redo_stack = [];
+    render_canvas();
+    save_canvas();
+  }
 });

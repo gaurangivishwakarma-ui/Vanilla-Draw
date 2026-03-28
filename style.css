@@ -49,7 +49,8 @@ border: 1px solid #ffffff;
  justify-content: center;   /*to make the content inside the div also centered*/
  align-items: center; 
  cursor: pointer;        
- transition: all 0.2s;       
+ transition: all 0.2s;    
+  
 }
 
 .flexbox img {
