@@ -120,10 +120,14 @@ function square(e) {
 
 function triangle(e) {
   ctx.beginPath();
-  ctx.moveTo(e.x + (e.width / 2), e.y);
-  ctx.lineTo(e.x + e.width, e.y + e.height);
-  ctx.lineTo(e.x, e.y + e.height);
-  ctx.closePath();
+  ctx.moveTo(e.points[0].x, e.points[0].y); 
+  if (e.points.length > 1) {
+    ctx.lineTo(e.points[1].x, e.points[1].y); 
+  }
+  if (e.points.length > 2) {
+    ctx.lineTo(e.points[2].x, e.points[2].y); 
+    ctx.closePath(); 
+  }
   ctx.stroke();
 }
 
@@ -156,10 +160,23 @@ function draw_image(e) {
   if (img.complete) {
     ctx.drawImage(img, e.x, e.y, e.width, e.height);
   }
+  else {
+    ctx.fillStyle = "rgba(200, 200, 200, 0.5)"; 
+    ctx.fillRect(e.x, e.y, e.width, e.height);
+    ctx.strokeStyle = "#888888";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    ctx.strokeRect(e.x, e.y, e.width, e.height);
+    ctx.fillStyle = "#333333";
+    ctx.font = '16px "Lucida Console", "Courier New", monospace'; 
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("Loading", e.x + (e.width / 2), e.y + (e.height / 2));
+  }
 }
 //calculates the dimension of the blue box
 function get_bounding_box(e) {
-  if (e.type === 'rectangle' || e.type === 'square' || e.type === 'image' || e.type === 'triangle') {
+  if (e.type === 'rectangle' || e.type === 'square' || e.type === 'image') {
     return {
       x: Math.min(e.x, e.x + e.width),
       y: Math.min(e.y, e.y + e.height),
@@ -180,7 +197,7 @@ function get_bounding_box(e) {
       width: Math.abs(e.xf - e.x),
       height: Math.abs(e.yf - e.y)
     };
-  } else if (e.type === 'pen') {
+  } else if (e.type === 'pen'|| e.type === 'triangle') {
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (let p of e.points) {
       if (p.x < minX) minX = p.x;
@@ -536,13 +553,13 @@ canvas.addEventListener('pointerdown', (event) => {
   }
 
   else if (current_state.current_tool === 'triangle') {
-
+    if (!current_element || current_element.type !== 'triangle') {
     current_element = {
       type: 'triangle',
       x: coords.x,
       y: coords.y,
-      width: 0,
-      height: 0,
+      clicks: 1,
+      points: [{ x: coords.x, y: coords.y }, { x: coords.x, y: coords.y }], 
       color: current_state.current_color,
       stroke_width: current_state.stroke_width,
       opacity: current_state.opacity,
@@ -550,6 +567,17 @@ canvas.addEventListener('pointerdown', (event) => {
 
     };
     elements.push(current_element);
+  }
+    else if (current_element.clicks === 1) {
+      current_element.clicks = 2;
+      current_element.points[1] = { x: coords.x, y: coords.y }; 
+      current_element.points.push({ x: coords.x, y: coords.y }); 
+    } 
+    else if (current_element.clicks === 2) {
+    
+      current_element.clicks = 3;
+      current_element.points[2] = { x: coords.x, y: coords.y }; 
+    }
   }
 
   else if (current_state.current_tool === 'pen') {
@@ -714,7 +742,7 @@ canvas.addEventListener('pointermove', (event) => {
       }
     }
 
-    else if (['rectangle', 'square', 'triangle', 'image', 'text'].includes(selected_element.type)) {
+    else if (['rectangle', 'square', 'image', 'text'].includes(selected_element.type)) {
       const old_center_x = selected_element.x + selected_element.width / 2;
       const old_center_y = selected_element.y + selected_element.height / 2;
       let anchor_local_x, anchor_local_y;
@@ -767,7 +795,7 @@ canvas.addEventListener('pointermove', (event) => {
       
     }
 
-    else if (selected_element.type === 'pen') {
+    else if (selected_element.type === 'pen'|| selected_element.type === 'triangle') {
       const bounds = get_bounding_box(selected_element);
       const safe_width = bounds.width === 0 ? 0.001 : bounds.width;
       const safe_height = bounds.height === 0 ? 0.001 : bounds.height;
@@ -838,8 +866,11 @@ canvas.addEventListener('pointermove', (event) => {
   }
 
   else if (current_state.current_tool === 'triangle') {
-    current_element.width = current_coords.x - current_element.x;
-    current_element.height = current_coords.y - current_element.y;
+    if (current_element) {
+    const last_idx = current_element.points.length - 1;
+    current_element.points[last_idx].x = current_coords.x;
+    current_element.points[last_idx].y = current_coords.y;
+    }
   }
 
   else if (current_state.current_tool === 'pen') {
@@ -860,7 +891,7 @@ canvas.addEventListener('pointermove', (event) => {
       const dx = targetX - bounds.x;
       const dy = targetY - bounds.y;
       //shift by that amount
-      if (selected_element.type === 'rectangle' || selected_element.type === 'square' || selected_element.type === 'image' || selected_element.type === 'triangle' || selected_element.type === 'text') {
+      if (selected_element.type === 'rectangle' || selected_element.type === 'square' || selected_element.type === 'image' || selected_element.type === 'text') {
         selected_element.x += dx;
         selected_element.y += dy;
       } else if (selected_element.type === 'circle') {
@@ -871,7 +902,7 @@ canvas.addEventListener('pointermove', (event) => {
         selected_element.y += dy;
         selected_element.xf += dx;
         selected_element.yf += dy;
-      } else if (selected_element.type === 'pen') {
+      } else if (selected_element.type === 'pen' || selected_element.type === 'triangle') {
         for (let p of selected_element.points) {
           p.x += dx;
           p.y += dy;
@@ -889,6 +920,11 @@ canvas.addEventListener('pointermove', (event) => {
 //when we have finished drawing 
 
 canvas.addEventListener('pointerup', (event) => {
+
+  if (current_state.current_tool === 'triangle' && current_element && current_element.clicks < 3) {
+      return; //to not stop drawing if we are making triangle
+  }
+
   current_state.is_drawing = false;
   current_element = null;
 
@@ -1007,3 +1043,12 @@ document.getElementById('clear-btn').addEventListener('click', () => {
     save_canvas();
   
 });
+
+const sidebar = document.getElementById('sidebar');
+const settingstoggle = document.getElementById('settingstoggle');
+settingstoggle.addEventListener('click', () => {
+    sidebar.classList.toggle('collapsed');
+});
+if (window.innerWidth <= 768) {
+    sidebar.classList.add('collapsed');
+}

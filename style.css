@@ -105,8 +105,8 @@ body.dark-mode {
 .sidebar{
 font-family: "Lucida Console", "Courier New", monospace;
 position: absolute; 
-top: 150px; 
-left: 20px; 
+top: 130px; 
+left: 10px; 
 background: rgba(193, 191, 191, 0.5);
 padding: 10px; 
 border: 1px solid #ffffff; 
@@ -115,6 +115,8 @@ flex-direction: column;
 gap: 10px;
 border-radius: 5px;
 box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.3); 
+transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+z-index: 99;
 }
 
 #style-picker, #style-picker option {
@@ -186,4 +188,50 @@ box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.3);
     width: 48px;       
     height: 48px;
   }
+  .toggle {
+    top: 80px;  
+    right: 10px;        
+    z-index: 100;
+    align-items: center;    
+    justify-content: center; 
+  }
+  #togglebtn {
+    position: static ; 
+    width: 28px ;      
+    height: 28px ;
+    margin: 0 ;        
+    display: block ;
+  }
+  .toggle img {
+    width: 48px;
+    height: 48px;
+  }
+
+}
+
+.settingstoggle {
+    position: absolute;
+    top: 80px;         
+    left: 10px;
+    background: rgba(193, 191, 191, 0.5);
+    padding: 8px 12px;
+    border: 1px solid #ffffff;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    font-family: "Lucida Console", "Courier New", monospace;
+    font-size: 16px;
+    z-index: 100;
+    pointer-events: auto; 
+    transition: all 0.2s;
+}
+
+.settingstoggle:hover {
+    background-color: #e0e0e0;
+}
+
+.sidebar.collapsed {
+    transform: translateX(-150%); 
+    opacity: 0;                   
+    pointer-events: none;      
 }
