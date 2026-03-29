@@ -204,6 +204,9 @@ function get_bounding_box(e) {
 function get_element_at_position(x, y) {
   for (let i = elements.length - 1; i >= 0; i--) {
     const e = elements[i];
+    if (e.type === 'clear_canvas') { //to make clear canvas un-doable
+        break; 
+    }
     const bounds = get_bounding_box(e);
 
     //5px padding so even if user hits a bit off, it still detects
@@ -299,8 +302,15 @@ function text(e) {
 /*looks at the elements array and renders canvas*/
 function render_canvas() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  elements.forEach(e => {
+  let start_index = 0;
+  for (let i = elements.length - 1; i >= 0; i--) { //added this to make clear canvas un-doable
+    if (elements[i].type === 'clear_canvas') {
+      start_index = i + 1; 
+      break;
+    }
+  }
+  for (let i = start_index; i < elements.length; i++) {
+    const e = elements[i];
 
     ctx.save(); //saves the canvas
 
@@ -377,7 +387,7 @@ function render_canvas() {
 
     ctx.restore();
 
-  });
+  }
 }
 
 //tool selection logic
@@ -936,6 +946,51 @@ if (saved_data) {
   render_canvas();
 }
 
+window.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+function switch_tool (tool_name){
+    current_state.current_tool = tool_name;
+    selected_element = null; 
+    render_canvas();
+    document.querySelectorAll('.item').forEach(btn => btn.classList.remove('active'));
+    const active_btn = document.querySelector(`[data-tool="${tool_name}"]`);
+    if (active_btn) active_btn.classList.add('active');
+  };
+
+    const key = e.key.toLowerCase();
+   
+    if (!e.ctrlKey && !e.metaKey && !e.altKey){
+    switch(key){
+      case 'r':  
+      e.preventDefault();
+      switch_tool('rectangle'); 
+      break;
+      case 't': 
+      e.preventDefault();
+      switch_tool('triangle');
+      break;
+      case 'o': 
+      e.preventDefault();
+      switch_tool('circle');
+      break;
+      case 'p': 
+      e.preventDefault();
+      switch_tool('pen');
+      break;
+      case 's': 
+      e.preventDefault();
+      switch_tool('select');
+      break;
+      case 'e':
+      e.preventDefault(); 
+      switch_tool('eraser');
+      break;
+    }
+  }
+  })
+
+
 document.getElementById('color-picker').addEventListener('input', (e) => current_state.current_color = e.target.value);
 document.getElementById('width-slider').addEventListener('input', (e) => current_state.stroke_width = parseInt(e.target.value));
 document.getElementById('opacity-slider').addEventListener('input', (e) => current_state.opacity = parseFloat(e.target.value));
@@ -945,11 +1000,10 @@ document.getElementById('font-family-picker').addEventListener('change', (e) => 
 document.getElementById('undo-btn').addEventListener('click', perform_undo);
 document.getElementById('redo-btn').addEventListener('click', perform_redo);
 document.getElementById('clear-btn').addEventListener('click', () => {
-  //asks for confirmation
-  if (confirm("Are you sure you want to clear the entire canvas?")) {
-    elements = [];
+  if (elements.length === 0 || elements[elements.length - 1].type === 'clear_canvas') return;
+  elements.push({ type: 'clear_canvas' }); //made clear canvas an element so it can be tracked and made un-doable
     redo_stack = [];
     render_canvas();
     save_canvas();
-  }
+  
 });
